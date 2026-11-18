@@ -1,0 +1,57 @@
+<shapes name="mxgraph.irasus">
+  <shape name="Hybrid Inverter" w="160" h="120" aspect="variable" strokewidth="inherit">
+    <connections>
+      <constraint x="0" y="0.25" perimeter="0" name="PV1"/>
+      <constraint x="0" y="0.75" perimeter="0" name="PV2"/>
+      <constraint x="0.5" y="1" perimeter="0" name="BATTERY"/>
+      <constraint x="1" y="0.25" perimeter="0" name="GRID"/>
+      <constraint x="1" y="0.75" perimeter="0" name="LOAD"/>
+    </connections>
+    <background><roundrect x="0" y="0" w="160" h="120" arcsize="8"/></background>
+    <foreground>
+      <fillstroke/><fontcolor color="#16324F"/><fontstyle style="1"/><fontsize size="12"/>
+      <text str="HYBRID INVERTER" x="80" y="20" align="center" valign="middle"/>
+      <fontstyle style="0"/><fontsize size="10"/>
+      <text str="PV1  DC" x="9" y="30" align="left" valign="middle"/>
+      <text str="PV2  DC" x="9" y="90" align="left" valign="middle"/>
+      <text str="AC  GRID" x="151" y="30" align="right" valign="middle"/>
+      <text str="AC  LOAD" x="151" y="90" align="right" valign="middle"/>
+      <text str="DC BAT" x="80" y="105" align="center" valign="middle"/>
+      <path><move x="60" y="48"/><line x="100" y="48"/><line x="100" y="75"/><line x="60" y="75"/><close/></path><stroke/>
+      <text str="DC/AC" x="80" y="61" align="center" valign="middle"/>
+    </foreground>
+  </shape>
+  <shape name="Battery Pack" w="120" h="85" aspect="variable" strokewidth="inherit">
+    <connections><constraint x="0.5" y="0" perimeter="0" name="DC"/></connections>
+    <background><roundrect x="0" y="5" w="120" h="80" arcsize="8"/></background>
+    <foreground><fillstroke/><rect x="52" y="0" w="16" h="5"/><fillstroke/>
+      <fontcolor color="#16324F"/><fontstyle style="1"/><fontsize size="12"/>
+      <text str="BATTERY PACK" x="60" y="22" align="center" valign="middle"/>
+      <path><move x="40" y="40"/><line x="40" y="65"/><move x="49" y="45"/><line x="49" y="60"/><move x="70" y="40"/><line x="70" y="65"/><move x="79" y="45"/><line x="79" y="60"/></path><stroke/>
+      <fontstyle style="0"/><fontsize size="10"/><text str="DC" x="60" y="76" align="center" valign="middle"/>
+    </foreground>
+  </shape>
+  <shape name="Solar PV" w="110" h="70" aspect="variable" strokewidth="inherit">
+    <connections><constraint x="1" y="0.5" perimeter="0" name="DC"/></connections>
+    <background><rect x="0" y="0" w="110" h="70"/></background>
+    <foreground><fillstroke/><path><move x="36" y="0"/><line x="36" y="70"/><move x="73" y="0"/><line x="73" y="70"/><move x="0" y="35"/><line x="110" y="35"/></path><stroke/>
+      <fontcolor color="#16324F"/><fontstyle style="1"/><fontsize size="11"/><text str="SOLAR PV (DC)" x="55" y="15" align="center" valign="middle"/>
+    </foreground>
+  </shape>
+  <shape name="Grid" w="110" h="70" aspect="variable" strokewidth="inherit">
+    <connections><constraint x="0" y="0.5" perimeter="0" name="AC"/></connections>
+    <background><roundrect x="0" y="0" w="110" h="70" arcsize="8"/></background>
+    <foreground><fillstroke/><fontcolor color="#16324F"/><fontstyle style="1"/><fontsize size="13"/>
+      <text str="GRID" x="55" y="28" align="center" valign="middle"/><fontsize size="10"/>
+      <text str="AC" x="55" y="48" align="center" valign="middle"/>
+    </foreground>
+  </shape>
+  <shape name="AC Load" w="110" h="70" aspect="variable" strokewidth="inherit">
+    <connections><constraint x="0" y="0.5" perimeter="0" name="AC"/></connections>
+    <background><roundrect x="0" y="0" w="110" h="70" arcsize="8"/></background>
+    <foreground><fillstroke/><fontcolor color="#16324F"/><fontstyle style="1"/><fontsize size="13"/>
+      <text str="AC LOAD" x="55" y="28" align="center" valign="middle"/><fontsize size="10"/>
+      <text str="AC" x="55" y="48" align="center" valign="middle"/>
+    </foreground>
+  </shape>
+</shapes>
