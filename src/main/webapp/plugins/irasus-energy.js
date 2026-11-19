@@ -542,6 +542,36 @@ Draw.loadPlugin(function (ui) {
     return body;
   }
 
+  // Readable ids for our cells.
+  // draw.io normally gives every new cell a random id like "lNIu7wKy...-14".
+  // For our equipment we use the type and a number instead:
+  //   shape -> hybrid_inverter_1, hybrid_inverter_2, solar_pv_1, ...
+  //   port  -> hybrid_inverter_1_PV1, hybrid_inverter_1_GRID, ...
+  // Everything else (wires, normal draw.io shapes) keeps the normal id.
+  // Only NEW cells get these ids; cells in an opened file keep their ids.
+  var drawioCreateId = model.createId;
+  model.createId = function (cell) {
+    var type = getEquipmentType(cell);
+    if (type) {
+      var number = 1;
+      while (this.getCell(type + '_' + number) != null) {
+        number++;
+      }
+      return type + '_' + number;
+    }
+
+    var parent = this.getParent(cell);
+    if (cell.value && typeof cell.value === 'object' && cell.value.getAttribute('portId') &&
+        getEquipmentType(parent) && parent.getId() != null) {
+      var portName = parent.getId() + '_' + cell.value.getAttribute('portId');
+      if (this.getCell(portName) == null) {
+        return portName;
+      }
+    }
+
+    return drawioCreateId.apply(this, arguments);
+  };
+
 
   // ===================================================================
   // PART 5: READ AND CHANGE SETTINGS
