@@ -31,6 +31,17 @@ Draw.loadPlugin(function (ui) {
     if (registered !== 5) {
       throw new Error('Expected 5 stencils, registered ' + registered);
     }
+    // Plain body for the configurable inverter (ports are child cells, not stencil constraints)
+    var bodyRegistered = false;
+    for (var j = 0; j < shapeNodes.length; j++) {
+      if (shapeNodes[j].getAttribute('name') === 'Hybrid Inverter Body') {
+        mxStencilRegistry.addStencil('mxgraph.irasus.hybrid_inverter_body', new mxStencil(shapeNodes[j]));
+        bodyRegistered = true;
+      }
+    }
+    if (!bodyRegistered) {
+      throw new Error('Stencil "Hybrid Inverter Body" not found in ' + stencilUrl);
+    }
   } catch (e) {
     ui.alert('Irasus stencils could not be loaded: ' + e.message);
     return;
@@ -57,15 +68,168 @@ Draw.loadPlugin(function (ui) {
     load:[{name:'AC',x:0,y:0.5,kind:'AC'}]
   };
 
+  // -------------------------------------------------------------------
+  // CONFIGURABLE EQUIPMENT (all 5 Irasus shapes)
+  //
+  // Each equipment body stores its configuration as metadata (attributes on
+  // the cell value). Each electrical port is a small child cell with its own
+  // metadata. Wires connect to the port cell, so a wire stays on the same
+  // port when the equipment is moved, resized or (later) reconfigured.
+  //
+  // CATALOG: one entry per equipment type.
+  //   stencil  - drawing used for the body (the original shapes are reused;
+  //              their fixed connection points are switched off with points=[])
+  //   defaults - configuration a new shape starts with (edited in Step 2)
+  //   ports    - port generator: configuration -> list of port specifications
+  // -------------------------------------------------------------------
+  var PORT_SIZE = 10;
+
+  var CATALOG = {
+    hybrid_inverter: {
+      title: 'Hybrid Inverter', stencil: 'hybrid_inverter_body', w: 160, h: 140,
+      defaults: {phase: '1', pvInputs: 2, batteryInputs: 1, grid: true, load: true},
+      ports: function (cfg) {
+        var list = [], i;
+        for (i = 1; i <= cfg.pvInputs; i++) {
+          list.push({portId: 'PV' + i, kind: 'DC', direction: 'in', side: 'left',
+            accepts: 'solar_pv,string_combiner'});
+        }
+        for (i = 1; i <= cfg.batteryInputs; i++) {
+          list.push({portId: 'BAT' + i, kind: 'DC', direction: 'both', side: 'bottom',
+            accepts: 'battery_pack'});
+        }
+        if (cfg.grid) {
+          list.push({portId: 'GRID', kind: 'AC', direction: 'both', side: 'right',
+            accepts: 'grid', phase: cfg.phase});
+        }
+        if (cfg.load) {
+          list.push({portId: 'LOAD', kind: 'AC', direction: 'out', side: 'right',
+            accepts: 'load', phase: cfg.phase});
+        }
+        return list;
+      }
+    },
+    solar_pv: {
+      title: 'Solar PV', stencil: 'solar_pv', w: 110, h: 70,
+      defaults: {strings: 1, modulesPerString: 10, moduleWatt: 550},
+      ports: function (cfg) {
+        var list = [];
+        for (var i = 1; i <= cfg.strings; i++) {
+          list.push({portId: 'DC' + i, kind: 'DC', direction: 'out', side: 'right',
+            accepts: 'hybrid_inverter,string_combiner'});
+        }
+        return list;
+      }
+    },
+    battery_pack: {
+      title: 'Battery Pack', stencil: 'battery_pack', w: 120, h: 85,
+      defaults: {nominalVoltage: 51.2, capacityKwh: 5},
+      ports: function (cfg) {
+        return [{portId: 'DC', kind: 'DC', direction: 'both', side: 'top',
+          accepts: 'hybrid_inverter', voltage: cfg.nominalVoltage}];
+      }
+    },
+    grid: {
+      title: 'Grid', stencil: 'grid', w: 110, h: 70,
+      defaults: {phase: '1', voltage: 230},
+      ports: function (cfg) {
+        return [{portId: 'AC', kind: 'AC', direction: 'both', side: 'left',
+          accepts: 'hybrid_inverter', phase: cfg.phase, voltage: cfg.voltage}];
+      }
+    },
+    load: {
+      title: 'AC Load', stencil: 'ac_load', w: 110, h: 70,
+      defaults: {phase: '1', powerKw: 2},
+      ports: function (cfg) {
+        return [{portId: 'AC', kind: 'AC', direction: 'in', side: 'left',
+          accepts: 'hybrid_inverter', phase: cfg.phase}];
+      }
+    }
+  };
+
+  // Relative position (0..1) of each port, spread evenly along its side
+  function layoutPorts(list) {
+    var bySide = {left: [], right: [], top: [], bottom: []};
+    list.forEach(function (p) { bySide[p.side].push(p); });
+    Object.keys(bySide).forEach(function (side) {
+      var n = bySide[side].length;
+      bySide[side].forEach(function (p, i) {
+        var t = (i + 1) / (n + 1);
+        p.x = side === 'left' ? 0 : side === 'right' ? 1 : t;
+        p.y = side === 'top' ? 0 : side === 'bottom' ? 1 : t;
+      });
+    });
+    return list;
+  }
+
+  function createUserObject(attrs) {
+    var obj = mxUtils.createXmlDocument().createElement('UserObject');
+    Object.keys(attrs).forEach(function (k) {
+      if (attrs[k] != null) obj.setAttribute(k, String(attrs[k]));
+    });
+    return obj;
+  }
+
+  var PORT_LABEL_STYLE = {
+    left: 'labelPosition=right;verticalLabelPosition=middle;align=left;verticalAlign=middle;spacingLeft=2;',
+    right: 'labelPosition=left;verticalLabelPosition=middle;align=right;verticalAlign=middle;spacingRight=2;',
+    top: 'labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;',
+    bottom: 'labelPosition=center;verticalLabelPosition=top;align=center;verticalAlign=bottom;'
+  };
+
+  function createPortCell(p) {
+    var value = createUserObject({
+      label: p.portId, irasusPort: '1', portId: p.portId, kind: p.kind,
+      direction: p.direction, accepts: p.accepts, phase: p.phase, voltage: p.voltage
+    });
+    var geo = new mxGeometry(p.x, p.y, PORT_SIZE, PORT_SIZE);
+    geo.relative = true;
+    geo.offset = new mxPoint(-PORT_SIZE / 2, -PORT_SIZE / 2);
+    var color = p.kind === 'DC' ? 'fillColor=#C0392B;strokeColor=#7B241C;' :
+      'fillColor=#E67E22;strokeColor=#935116;';
+    var cell = new mxCell(value, geo, 'ellipse;irasusPort=1;html=0;fontSize=9;fontColor=#16324F;' +
+      color + PORT_LABEL_STYLE[p.side] +
+      'movable=0;resizable=0;rotatable=0;deletable=0;editable=0;points=[[0.5,0.5,0]];');
+    cell.vertex = true;
+    return cell;
+  }
+
+  // Creates an equipment body with its configuration metadata and port cells
+  function createEquipment(type, cfg) {
+    var eq = CATALOG[type];
+    var attrs = {label: '', irasusType: type, irasusVersion: '1'};
+    Object.keys(cfg).forEach(function (k) {
+      attrs[k] = typeof cfg[k] === 'boolean' ? (cfg[k] ? '1' : '0') : cfg[k];
+    });
+    var body = new mxCell(createUserObject(attrs), new mxGeometry(0, 0, eq.w, eq.h),
+      'shape=mxgraph.irasus.' + eq.stencil + ';irasusEquipment=1;whiteSpace=wrap;html=0;' +
+      'fillColor=#F2F8FD;strokeColor=#275D87;connectable=0;points=[];');
+    body.vertex = true;
+    var ports = layoutPorts(eq.ports(cfg));
+    ports.forEach(function (p) {
+      var port = createPortCell(p);
+      // A single port needs no label: the shape drawing already says AC/DC
+      if (ports.length === 1) port.style += 'noLabel=1;';
+      body.insert(port);
+    });
+    return body;
+  }
+
+  function isIrasusPort(cell) {
+    return !!(cell && graph.getCellStyle(cell).irasusPort == '1');
+  }
+
+  // Palette: the 5 Irasus shapes, now created as configurable equipment.
+  // The original fixed-port stencils stay registered above, so diagrams
+  // drawn with them still open and validate as before.
   function addPalette() {
     if (!ui.sidebar) return;
-    var entries = Object.keys(specs).map(function (type) {
-      var spec = specs[type];
-      return ui.sidebar.createVertexTemplateEntry(
-        'shape=mxgraph.irasus.' + spec.shape + ';equipmentType=' + type +
-        ';whiteSpace=wrap;html=0;fillColor=#F2F8FD;strokeColor=#275D87;',
-        spec.w, spec.h, '', spec.title, false, true, 'irasus energy ' + type
-      );
+    var entries = Object.keys(CATALOG).map(function (type) {
+      var eq = CATALOG[type];
+      return ui.sidebar.addEntry('irasus energy ' + type + ' ' + eq.title.toLowerCase(), function () {
+        return ui.sidebar.createVertexTemplateFromCells(
+          [createEquipment(type, eq.defaults)], eq.w, eq.h, eq.title, true, true);
+      });
     });
     ui.sidebar.addPaletteFunctions('irasusEnergy', 'Irasus Energy', true, entries);
   }
@@ -91,6 +255,8 @@ Draw.loadPlugin(function (ui) {
     var a = model.getTerminal(edge,true), b = model.getTerminal(edge,false);
     var issues = [];
     if (!a || !b) return ['Connector has a missing endpoint'];
+    // Wires to configurable-equipment ports are validated in a later step
+    if (isIrasusPort(a) || isIrasusPort(b)) return [];
     var ta = cellType(a), tb = cellType(b);
     if (!ta && !tb) return []; // ignore unrelated diagram elements
     if (!ta || !tb) return ['Irasus equipment connected to an untyped shape'];

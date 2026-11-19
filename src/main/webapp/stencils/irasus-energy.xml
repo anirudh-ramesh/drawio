@@ -46,6 +46,17 @@
       <text str="AC" x="55" y="48" align="center" valign="middle"/>
     </foreground>
   </shape>
+  <shape name="Hybrid Inverter Body" w="160" h="140" aspect="variable" strokewidth="inherit">
+    <connections/>
+    <background><roundrect x="0" y="0" w="160" h="140" arcsize="8"/></background>
+    <foreground>
+      <fillstroke/><fontcolor color="#16324F"/><fontstyle style="1"/><fontsize size="12"/>
+      <text str="HYBRID INVERTER" x="80" y="20" align="center" valign="middle"/>
+      <fontstyle style="0"/><fontsize size="10"/>
+      <path><move x="60" y="55"/><line x="100" y="55"/><line x="100" y="85"/><line x="60" y="85"/><close/></path><stroke/>
+      <text str="DC/AC" x="80" y="70" align="center" valign="middle"/>
+    </foreground>
+  </shape>
   <shape name="AC Load" w="110" h="70" aspect="variable" strokewidth="inherit">
     <connections><constraint x="0" y="0.5" perimeter="0" name="AC"/></connections>
     <background><roundrect x="0" y="0" w="110" h="70" arcsize="8"/></background>
