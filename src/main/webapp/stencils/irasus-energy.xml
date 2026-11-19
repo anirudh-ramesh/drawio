@@ -68,9 +68,6 @@
     <foreground>
       <fillstroke/><fontcolor color="#16324F"/><fontstyle style="1"/><fontsize size="11"/>
       <text str="AC METER" x="50" y="16" align="center" valign="middle"/>
-      <ellipse x="35" y="28" w="30" h="30"/><stroke/>
-      <fontstyle style="0"/><fontsize size="9"/>
-      <text str="kWh" x="50" y="43" align="center" valign="middle"/>
     </foreground>
   </shape>
   <shape name="DC Meter" w="100" h="70" aspect="variable" strokewidth="inherit">
@@ -79,9 +76,7 @@
     <foreground>
       <fillstroke/><fontcolor color="#16324F"/><fontstyle style="1"/><fontsize size="11"/>
       <text str="DC METER" x="50" y="16" align="center" valign="middle"/>
-      <ellipse x="35" y="28" w="30" h="30"/><stroke/>
-      <fontstyle style="0"/><fontsize size="9"/>
-      <text str="kWh" x="50" y="43" align="center" valign="middle"/>
+    
     </foreground>
   </shape>
   <shape name="Contactor" w="100" h="70" aspect="variable" strokewidth="inherit">
