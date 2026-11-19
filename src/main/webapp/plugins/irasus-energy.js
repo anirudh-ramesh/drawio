@@ -3,7 +3,7 @@
  *
  * What this plugin does:
  *  1. Adds the "Irasus Energy" shapes: Hybrid Inverter, Solar PV,
- *     Battery Pack, Grid and AC Load.
+ *     Battery Pack, Grid, AC Load, AC Meter, DC Meter, Contactor and Bus Bar.
  *  2. Every shape has small port dots. Wires connect to these dots.
  *  3. Double-click a shape to change its settings (for example the
  *     number of PV inputs). The port dots update automatically.
@@ -34,7 +34,11 @@ Draw.loadPlugin(function (ui) {
     'Solar PV': 'solar_pv',
     'Grid': 'grid',
     'AC Load': 'ac_load',
-    'Hybrid Inverter Body': 'hybrid_inverter_body'
+    'Hybrid Inverter Body': 'hybrid_inverter_body',
+    'AC Meter': 'ac_meter',
+    'DC Meter': 'dc_meter',
+    'Contactor': 'contactor',
+    'Bus Bar': 'busbar'
   };
 
   try {
@@ -55,8 +59,8 @@ Draw.loadPlugin(function (ui) {
       }
     }
 
-    if (loadedCount !== 6) {
-      throw new Error('Expected 6 stencils, registered ' + loadedCount);
+    if (loadedCount !== 10) {
+      throw new Error('Expected 10 stencils, registered ' + loadedCount);
     }
   } catch (e) {
     ui.alert('Irasus stencils could not be loaded: ' + e.message);
@@ -84,6 +88,21 @@ Draw.loadPlugin(function (ui) {
   //   max       - most wires allowed on this port (null = no limit)
   // ===================================================================
 
+  // Devices that sit in between other equipment (a wire goes in and out).
+  // They can be connected to these ports as well.
+  var IN_BETWEEN_AC = 'ac_meter,contactor,busbar';   // for AC ports
+  var IN_BETWEEN_DC = 'dc_meter,contactor,busbar';   // for DC ports
+
+  // Everything an AC port or a DC port may connect to (used by meters,
+  // contactors and bus bars)
+  var ANY_AC = 'grid,load,hybrid_inverter,' + IN_BETWEEN_AC;
+  var ANY_DC = 'solar_pv,battery_pack,hybrid_inverter,string_combiner,' + IN_BETWEEN_DC;
+
+  var KIND_OPTIONS = [
+    {value: 'AC', label: 'AC'},
+    {value: 'DC', label: 'DC'}
+  ];
+
   var PHASE_OPTIONS = [
     {value: '1', label: 'Single-phase'},
     {value: '3', label: 'Three-phase'}
@@ -108,19 +127,19 @@ Draw.loadPlugin(function (ui) {
         var list = [];
         for (var n = 1; n <= settings.pvInputs; n++) {
           list.push({portId: 'PV' + n, kind: 'DC', direction: 'in', side: 'left',
-            accepts: 'solar_pv,string_combiner', max: 1});
+            accepts: 'solar_pv,string_combiner,' + IN_BETWEEN_DC, max: 1});
         }
         for (var b = 1; b <= settings.batteryInputs; b++) {
           list.push({portId: 'BAT' + b, kind: 'DC', direction: 'both', side: 'bottom',
-            accepts: 'battery_pack', max: 1});
+            accepts: 'battery_pack,' + IN_BETWEEN_DC, max: 1});
         }
         if (settings.grid) {
           list.push({portId: 'GRID', kind: 'AC', direction: 'both', side: 'right',
-            accepts: 'grid', phase: settings.phase, max: 1});
+            accepts: 'grid,' + IN_BETWEEN_AC, phase: settings.phase, max: 1});
         }
         if (settings.load) {
           list.push({portId: 'LOAD', kind: 'AC', direction: 'out', side: 'right',
-            accepts: 'load', phase: settings.phase, max: null});
+            accepts: 'load,' + IN_BETWEEN_AC, phase: settings.phase, max: null});
         }
         return list;
       }
@@ -141,7 +160,7 @@ Draw.loadPlugin(function (ui) {
         var list = [];
         for (var n = 1; n <= settings.strings; n++) {
           list.push({portId: 'DC' + n, kind: 'DC', direction: 'out', side: 'right',
-            accepts: 'hybrid_inverter,string_combiner', max: 1});
+            accepts: 'hybrid_inverter,string_combiner,' + IN_BETWEEN_DC, max: 1});
         }
         return list;
       }
@@ -159,7 +178,7 @@ Draw.loadPlugin(function (ui) {
       ],
       ports: function (settings) {
         return [{portId: 'DC', kind: 'DC', direction: 'both', side: 'top',
-          accepts: 'hybrid_inverter', voltage: settings.nominalVoltage, max: 1}];
+          accepts: 'hybrid_inverter,' + IN_BETWEEN_DC, voltage: settings.nominalVoltage, max: 1}];
       }
     },
 
@@ -175,7 +194,7 @@ Draw.loadPlugin(function (ui) {
       ],
       ports: function (settings) {
         return [{portId: 'AC', kind: 'AC', direction: 'both', side: 'left',
-          accepts: 'hybrid_inverter', phase: settings.phase, voltage: settings.voltage, max: 1}];
+          accepts: 'hybrid_inverter,' + IN_BETWEEN_AC, phase: settings.phase, voltage: settings.voltage, max: 1}];
       }
     },
 
@@ -191,7 +210,94 @@ Draw.loadPlugin(function (ui) {
       ],
       ports: function (settings) {
         return [{portId: 'AC', kind: 'AC', direction: 'in', side: 'left',
-          accepts: 'hybrid_inverter', phase: settings.phase, max: 1}];
+          accepts: 'hybrid_inverter,' + IN_BETWEEN_AC, phase: settings.phase, max: 1}];
+      }
+    },
+
+    // ---- Devices that sit in between other equipment ----
+
+    ac_meter: {
+      title: 'AC Meter',
+      stencil: 'ac_meter',
+      w: 100,
+      h: 70,
+      defaults: {phase: '1', maxCurrent: 63},
+      fields: [
+        {key: 'phase', label: 'Phase', type: 'select', options: PHASE_OPTIONS},
+        {key: 'maxCurrent', label: 'Max current (A)', type: 'number', min: 1, max: 4000}
+      ],
+      ports: function (settings) {
+        return [
+          {portId: 'IN', kind: 'AC', direction: 'both', side: 'left',
+            accepts: ANY_AC, phase: settings.phase, max: 1},
+          {portId: 'OUT', kind: 'AC', direction: 'both', side: 'right',
+            accepts: ANY_AC, phase: settings.phase, max: 1}
+        ];
+      }
+    },
+
+    dc_meter: {
+      title: 'DC Meter',
+      stencil: 'dc_meter',
+      w: 100,
+      h: 70,
+      defaults: {maxVoltage: 1000, maxCurrent: 100},
+      fields: [
+        {key: 'maxVoltage', label: 'Max voltage (V)', type: 'number', min: 1, max: 1500},
+        {key: 'maxCurrent', label: 'Max current (A)', type: 'number', min: 1, max: 4000}
+      ],
+      ports: function (settings) {
+        return [
+          {portId: 'IN', kind: 'DC', direction: 'both', side: 'left',
+            accepts: ANY_DC, max: 1},
+          {portId: 'OUT', kind: 'DC', direction: 'both', side: 'right',
+            accepts: ANY_DC, max: 1}
+        ];
+      }
+    },
+
+    contactor: {
+      title: 'Contactor',
+      stencil: 'contactor',
+      w: 100,
+      h: 70,
+      defaults: {kind: 'AC', ratedCurrent: 63, poles: 2},
+      fields: [
+        {key: 'kind', label: 'Type', type: 'select', options: KIND_OPTIONS},
+        {key: 'ratedCurrent', label: 'Rated current (A)', type: 'number', min: 1, max: 4000},
+        {key: 'poles', label: 'Poles', type: 'number', min: 1, max: 4}
+      ],
+      ports: function (settings) {
+        var accepts = (settings.kind === 'DC') ? ANY_DC : ANY_AC;
+        return [
+          {portId: 'LINE', kind: settings.kind, direction: 'both', side: 'left',
+            accepts: accepts, max: 1},
+          {portId: 'LOAD', kind: settings.kind, direction: 'both', side: 'right',
+            accepts: accepts, max: 1}
+        ];
+      }
+    },
+
+    busbar: {
+      title: 'Bus Bar',
+      stencil: 'busbar',
+      w: 240,
+      h: 30,
+      fillColor: '#D6DBDF',
+      defaults: {kind: 'AC', taps: 4, ratedCurrent: 250},
+      fields: [
+        {key: 'kind', label: 'Type', type: 'select', options: KIND_OPTIONS},
+        {key: 'taps', label: 'Connection points', type: 'number', min: 2, max: 8},
+        {key: 'ratedCurrent', label: 'Rated current (A)', type: 'number', min: 1, max: 6000}
+      ],
+      ports: function (settings) {
+        var accepts = (settings.kind === 'DC') ? ANY_DC : ANY_AC;
+        var list = [];
+        for (var n = 1; n <= settings.taps; n++) {
+          list.push({portId: 'T' + n, kind: settings.kind, direction: 'both', side: 'top',
+            accepts: accepts, max: 1});
+        }
+        return list;
       }
     }
   };
@@ -201,6 +307,9 @@ Draw.loadPlugin(function (ui) {
 
   // Equipment that can power an inverter
   var POWER_SOURCES = ['solar_pv', 'battery_pack', 'grid', 'string_combiner'];
+
+  // Equipment that power flows through (meters, contactors, bus bars)
+  var PASS_THROUGH = ['ac_meter', 'dc_meter', 'contactor', 'busbar'];
 
   var PORT_SIZE = 10;
   var DC_COLOR = '#FF0000';
@@ -416,8 +525,12 @@ Draw.loadPlugin(function (ui) {
     var portList = placePorts(equipment.ports(settings));
     var size = getBodySize(equipment, portList);
 
+    // Colours: the equipment's own colours if it has them, otherwise the normal blue
+    var fill = equipment.fillColor || '#F2F8FD';
+    var border = equipment.strokeColor || '#275D87';
+
     var style = 'shape=mxgraph.irasus.' + equipment.stencil + ';irasusEquipment=1;whiteSpace=wrap;html=0;' +
-      'fillColor=#F2F8FD;strokeColor=#275D87;connectable=0;points=[];';
+      'fillColor=' + fill + ';strokeColor=' + border + ';connectable=0;points=[];';
 
     var body = new mxCell(makeUserObject(data), new mxGeometry(0, 0, size.w, size.h), style);
     body.vertex = true;
@@ -507,6 +620,13 @@ Draw.loadPlugin(function (ui) {
         var existing = oldPorts[port.portId];
 
         if (existing) {
+          // If the port changes between AC and DC, its wires no longer fit: remove them
+          if (existing.value.getAttribute('kind') !== port.kind) {
+            var oldWires = model.getEdges(existing).slice();
+            for (var k = 0; k < oldWires.length; k++) {
+              model.remove(oldWires[k]);
+            }
+          }
           model.setValue(existing, makePortValue(port));
           model.setGeometry(existing, makePortGeometry(port));
           model.setStyle(existing, makePortStyle(port, onlyOnePort));
@@ -534,15 +654,20 @@ Draw.loadPlugin(function (ui) {
   function getWiredPortsThatWillBeRemoved(body, settings) {
     var equipment = EQUIPMENT_LIST[getEquipmentType(body)];
     var newPorts = equipment.ports(settings);
-    var stillNeeded = {};
+    var newKind = {};
     for (var i = 0; i < newPorts.length; i++) {
-      stillNeeded[newPorts[i].portId] = true;
+      newKind[newPorts[i].portId] = newPorts[i].kind;
     }
 
     var oldPorts = getPorts(body);
     var result = [];
     for (var portId in oldPorts) {
-      if (!stillNeeded[portId] && model.getEdgeCount(oldPorts[portId]) > 0) {
+      if (model.getEdgeCount(oldPorts[portId]) === 0) {
+        continue; // no wires, nothing is lost
+      }
+      var removed = (newKind[portId] === undefined);
+      var changesAcDc = !removed && newKind[portId] !== oldPorts[portId].value.getAttribute('kind');
+      if (removed || changesAcDc) {
         result.push(portId);
       }
     }
@@ -669,8 +794,8 @@ Draw.loadPlugin(function (ui) {
 
       var lostPorts = getWiredPortsThatWillBeRemoved(body, newSettings);
       if (lostPorts.length > 0) {
-        ui.confirm('These ports have wires connected and will be removed together with ' +
-          'their wires: ' + lostPorts.join(', ') + '. Continue?', function () {
+        ui.confirm('These ports have wires connected. They will be removed or change AC/DC, ' +
+          'and their wires will be removed: ' + lostPorts.join(', ') + '. Continue?', function () {
           applySettings(body, newSettings);
         });
       } else {
@@ -685,6 +810,50 @@ Draw.loadPlugin(function (ui) {
 
     ui.showDialog(box, 380, 110 + equipment.fields.length * 38, true, true);
   }
+
+  // Keep the port dots on the edges WHILE a shape is being resized.
+  // draw.io's resize preview does not move child cells (it still uses the
+  // old size for them), so the dots and their wires would drift until the
+  // mouse is released. After draw.io draws its preview, we place our port
+  // dots for the new size and redraw their wires. Only the preview changes;
+  // the diagram itself is updated by draw.io when the mouse is released.
+  var drawioResizePreview = mxVertexHandler.prototype.updateLivePreview;
+  mxVertexHandler.prototype.updateLivePreview = function (me) {
+    drawioResizePreview.apply(this, arguments);
+
+    if (this.state == null || this.graph !== graph || !getEquipmentType(this.state.cell)) {
+      return;
+    }
+    var view = graph.view;
+    var scale = view.scale;
+    var box = this.bounds; // the new size and position, in screen pixels
+    var ports = getPorts(this.state.cell);
+
+    for (var portId in ports) {
+      var port = ports[portId];
+      var portState = view.getState(port);
+      var geometry = port.geometry;
+      if (portState == null || geometry == null) {
+        continue;
+      }
+      // Same formula draw.io uses, but with the new size
+      portState.x = box.x + geometry.x * box.width + geometry.offset.x * scale;
+      portState.y = box.y + geometry.y * box.height + geometry.offset.y * scale;
+      portState.width = geometry.width * scale;
+      portState.height = geometry.height * scale;
+      graph.cellRenderer.redraw(portState, true);
+
+      // Redraw the wires on this port so they follow the dot
+      var wires = model.getEdges(port);
+      for (var w = 0; w < wires.length; w++) {
+        var wireState = view.getState(wires[w]);
+        if (wireState != null) {
+          view.updateEdgeState(wireState, wires[w].geometry);
+          graph.cellRenderer.redraw(wireState, true);
+        }
+      }
+    }
+  };
 
   // Double-click on a shape (or on one of its ports) opens its settings
   graph.addListener(mxEvent.DOUBLE_CLICK, function (sender, evt) {
@@ -915,6 +1084,30 @@ Draw.loadPlugin(function (ui) {
     }, 0);
   }
 
+  // Updates the ports of every equipment whose ports are out of date, when no
+  // wires would be lost. Anything that cannot be updated is reported by
+  // Validate Diagram (rule V10).
+  function updateOldEquipment() {
+    var bodies = model.filterDescendants(function (cell) {
+      return getEquipmentType(cell) != null;
+    });
+    model.beginUpdate();
+    try {
+      for (var i = 0; i < bodies.length; i++) {
+        var body = bodies[i];
+        if (findSettingProblem(body) || !portsDoNotMatchSettings(body)) {
+          continue;
+        }
+        var settings = readSettings(body);
+        if (getWiredPortsThatWillBeRemoved(body, settings).length === 0) {
+          applySettings(body, settings);
+        }
+      }
+    } finally {
+      model.endUpdate();
+    }
+  }
+
   // This runs after every change, before it is saved in the undo history.
   // Corrections made here become part of the same undo step.
   // (Undo and redo do not run this, so it never repeats itself.)
@@ -949,6 +1142,15 @@ Draw.loadPlugin(function (ui) {
         if (changedPorts.indexOf(cell) < 0) {
           changedPorts.push(cell);
         }
+      }
+    }
+
+    // A diagram was opened: bring the ports of older diagrams up to date
+    // (for example after new equipment was added to the accept lists)
+    for (var r = 0; r < edit.changes.length; r++) {
+      if (edit.changes[r] instanceof mxRootChange) {
+        updateOldEquipment();
+        break;
       }
     }
 
@@ -991,7 +1193,7 @@ Draw.loadPlugin(function (ui) {
         var lostPorts = getWiredPortsThatWillBeRemoved(body, settings);
         if (lostPorts.length > 0) {
           model.setValue(body, oldValues[body.id]);
-          messagesToShow.push(title + ': this change would remove port(s) ' + lostPorts.join(', ') +
+          messagesToShow.push(title + ': this change would remove or change port(s) ' + lostPorts.join(', ') +
             ' which still have wires connected. The change was undone. Double-click the ' +
             'equipment to change its settings; you will be asked before wires are removed.');
           continue;
@@ -1116,6 +1318,88 @@ Draw.loadPlugin(function (ui) {
   function isWire(cell) {
     return model.isEdge(cell);
   }
+
+  // Safety check after every change: draw.io can create a wire without asking
+  // getEdgeValidationError (for example when the mouse is released next to a
+  // port dot instead of on it). So every new or moved wire on our ports is
+  // checked again here, in the same undo step:
+  //  - a new wire that breaks a rule, or has a loose end, is removed
+  //  - a moved wire end that breaks a rule is put back where it was
+  model.addListener(mxEvent.END_UPDATE, function (sender, evt) {
+    if (!model.endingUpdate) {
+      return;
+    }
+    var edit = evt.getProperty('edit');
+    if (!edit || !edit.changes || edit.changes.length === 0) {
+      return;
+    }
+
+    var newWires = [];
+    var movedEnds = [];
+    for (var i = 0; i < edit.changes.length; i++) {
+      var change = edit.changes[i];
+      // A wire was added (it had no parent before)
+      if (change instanceof mxChildChange && change.parent != null && change.previous == null &&
+          model.isEdge(change.child)) {
+        newWires.push(change.child);
+      }
+      // One end of a wire was moved
+      if (change instanceof mxTerminalChange && model.isEdge(change.cell)) {
+        movedEnds.push(change);
+      }
+    }
+    if (newWires.length === 0 && movedEnds.length === 0) {
+      return;
+    }
+
+    model.beginUpdate();
+    try {
+      // Check new wires
+      for (var w = 0; w < newWires.length; w++) {
+        var wire = newWires[w];
+        if (!model.contains(wire)) {
+          continue;
+        }
+        var start = model.getTerminal(wire, true);
+        var end = model.getTerminal(wire, false);
+        if (!isIrasusPort(start) && !isIrasusPort(end)) {
+          continue; // not our ports
+        }
+        if (start == null || end == null) {
+          model.remove(wire);
+          messagesToShow.push('A wire must end on a port dot. Release the mouse exactly on the dot.');
+          continue;
+        }
+        var error = getConnectionError(start, end);
+        if (error) {
+          model.remove(wire);
+          messagesToShow.push(error);
+        }
+      }
+
+      // Check moved wire ends (wires that already existed)
+      for (var m = 0; m < movedEnds.length; m++) {
+        var moved = movedEnds[m];
+        var movedWire = moved.cell;
+        if (!model.contains(movedWire) || newWires.indexOf(movedWire) >= 0) {
+          continue;
+        }
+        var s = model.getTerminal(movedWire, true);
+        var t = model.getTerminal(movedWire, false);
+        if (!isIrasusPort(s) || !isIrasusPort(t)) {
+          continue;
+        }
+        var moveError = getConnectionError(s, t);
+        if (moveError) {
+          model.setTerminal(movedWire, moved.previous, moved.source); // put the end back
+          messagesToShow.push(moveError);
+        }
+      }
+    } finally {
+      model.endUpdate();
+    }
+    showMessagesLater();
+  });
 
   // After each change: colour new wires, moved wires, and all wires of an opened file
   model.addListener(mxEvent.END_UPDATE, function (sender, evt) {
@@ -1314,6 +1598,48 @@ Draw.loadPlugin(function (ui) {
     return 'a shape';
   }
 
+  // Remembers that two pieces of equipment are connected by a correct wire
+  function addLink(links, a, b) {
+    if (!links[a.id]) {
+      links[a.id] = [];
+    }
+    if (!links[b.id]) {
+      links[b.id] = [];
+    }
+    links[a.id].push(b);
+    links[b.id].push(a);
+  }
+
+  // True if the inverter reaches a power source (Solar PV, Battery, Grid),
+  // directly or through meters, contactors and bus bars
+  function hasPowerSource(inverter, links) {
+    var toVisit = [inverter];
+    var visited = {};
+    visited[inverter.id] = true;
+
+    while (toVisit.length > 0) {
+      var current = toVisit.shift();
+      var neighbours = links[current.id] || [];
+
+      for (var i = 0; i < neighbours.length; i++) {
+        var next = neighbours[i];
+        if (visited[next.id]) {
+          continue;
+        }
+        visited[next.id] = true;
+
+        var type = getEquipmentType(next);
+        if (POWER_SOURCES.indexOf(type) >= 0) {
+          return true;
+        }
+        if (PASS_THROUGH.indexOf(type) >= 0) {
+          toVisit.push(next); // keep looking on the other side
+        }
+      }
+    }
+    return false;
+  }
+
   function checkDiagram() {
     var problems = [];
 
@@ -1337,7 +1663,7 @@ Draw.loadPlugin(function (ui) {
 
     var wiresOnPort = {};    // port id -> {port, count}
     var connectedPairs = {}; // "portA|portB" -> number of wires
-    var inverterHasSource = {};
+    var links = {};          // equipment id -> list of connected equipment
 
     // ---- Check every wire ----
     for (var w = 0; w < wires.length; w++) {
@@ -1423,15 +1749,8 @@ Draw.loadPlugin(function (ui) {
           describe(end) + ' are already connected.');
       }
 
-      // Remember which inverters have a power source (for V7)
-      var startType = getEquipmentType(startBody);
-      var endType = getEquipmentType(endBody);
-      if (startType === 'hybrid_inverter' && POWER_SOURCES.indexOf(endType) >= 0) {
-        inverterHasSource[startBody.id] = true;
-      }
-      if (endType === 'hybrid_inverter' && POWER_SOURCES.indexOf(startType) >= 0) {
-        inverterHasSource[endBody.id] = true;
-      }
+      // Remember which equipment is connected to which (for V7)
+      addLink(links, startBody, endBody);
     }
 
     // ---- V5: too many wires on one port ----
@@ -1466,10 +1785,10 @@ Draw.loadPlugin(function (ui) {
       if (!hasWire) {
         // V8: not connected
         addProblem('V8', 'warning', body, describe(body) + ' is not connected to anything.');
-      } else if (getEquipmentType(body) === 'hybrid_inverter' && !inverterHasSource[body.id]) {
+      } else if (getEquipmentType(body) === 'hybrid_inverter' && !hasPowerSource(body, links)) {
         // V7: inverter without power source
         addProblem('V7', 'error', body, describe(body) + ' has no power source: connect Solar PV, ' +
-          'a Battery Pack or the Grid.');
+          'a Battery Pack or the Grid (directly or through a meter, contactor or bus bar).');
       }
     }
 
