@@ -33,7 +33,8 @@ Code: `checkDiagram()` in `src/main/webapp/plugins/irasus-energy.js`.
 | Solar PV | DC1…DCn | 1 |
 | Battery Pack | DC | 1 |
 | Grid | AC | 1 |
-| AC Load | AC | 1 |
+| Critical Load (`load`) | AC | 1 |
+| Non-Critical Load (`non_critical_load`) | AC | 1 |
 
 To change a limit, edit `max` for that port in the `CATALOG` block of the
 plugin (`null` = no limit).
@@ -63,6 +64,24 @@ meters, contactors and bus bars to find a power source.
 
 Changing a Contactor or Bus Bar between AC and DC while it has wires asks
 first, and removes those wires if you continue.
+
+## Built-in meter (Has measuring)
+
+Most devices have a **Has built-in meter (V, I, power)** checkbox in their
+settings (saved as `hasMeasuring` = 1 / 0). Ticked means the device has its
+own meter inside. It is information only; no Validate Diagram rule uses it.
+
+| Device | Default |
+|---|---|
+| Hybrid Inverter | ticked (all its ports are also marked `measured = yes`) |
+| Battery Pack | ticked (BMS) |
+| Solar PV, Grid, Bus Bar, Critical Load, Non-Critical Load | not ticked |
+| AC Meter, DC Meter, Contactor | no checkbox (a meter is the meter; a contactor is a switch) |
+
+An external meter is shown as an AC Meter / DC Meter shape in the wire; it
+does not change the other device's checkbox.
+
+Example: `docs/irasus-examples/full-system-example.drawio`.
 
 ## Related behaviour
 

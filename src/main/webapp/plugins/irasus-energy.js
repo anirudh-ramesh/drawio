@@ -3,7 +3,7 @@
  *
  * What this plugin does:
  *  1. Adds the "Irasus Energy" shapes: Hybrid Inverter, Solar PV,
- *     Battery Pack, Grid, AC Load, AC Meter, DC Meter, Contactor and Bus Bar.
+ *     Battery Pack, Grid, Critical Load, Non-Critical Load, AC Meter, DC Meter, Contactor and Bus Bar.
  *  2. Every shape has small port dots. Wires connect to these dots.
  *  3. Double-click a shape to change its settings (for example the
  *     number of PV inputs). The port dots update automatically.
@@ -38,11 +38,13 @@ Draw.loadPlugin(function (ui) {
     'AC Meter': 'ac_meter',
     'DC Meter': 'dc_meter',
     'Contactor': 'contactor',
-    'Bus Bar': 'busbar'
+    'Bus Bar': 'busbar',
+    'Non-Critical Load': 'non_critical_load'
   };
 
   try {
-    var xmlDoc = mxUtils.load(stencilFile).getXml();
+    // Add the time to the address so the browser always loads the newest file
+    var xmlDoc = mxUtils.load(stencilFile + '?t=' + new Date().getTime()).getXml();
     if (!xmlDoc || !xmlDoc.documentElement) {
       throw new Error('Stencil XML document is empty');
     }
@@ -59,8 +61,8 @@ Draw.loadPlugin(function (ui) {
       }
     }
 
-    if (loadedCount !== 10) {
-      throw new Error('Expected 10 stencils, registered ' + loadedCount);
+    if (loadedCount !== 11) {
+      throw new Error('Expected 11 stencils, registered ' + loadedCount);
     }
   } catch (e) {
     ui.alert('Irasus stencils could not be loaded: ' + e.message);
@@ -95,7 +97,7 @@ Draw.loadPlugin(function (ui) {
 
   // Everything an AC port or a DC port may connect to (used by meters,
   // contactors and bus bars)
-  var ANY_AC = 'grid,load,hybrid_inverter,' + IN_BETWEEN_AC;
+  var ANY_AC = 'grid,load,non_critical_load,hybrid_inverter,' + IN_BETWEEN_AC;
   var ANY_DC = 'solar_pv,battery_pack,hybrid_inverter,string_combiner,' + IN_BETWEEN_DC;
 
   var KIND_OPTIONS = [
@@ -108,6 +110,10 @@ Draw.loadPlugin(function (ui) {
     {value: '3', label: 'Three-phase'}
   ];
 
+  // Checkbox: the device has its own meter inside (measures V, I, power).
+  // Used by most devices; meters and contactors do not have it.
+  var METER_FIELD = {key: 'hasMeasuring', label: 'Built-in meter', type: 'checkbox'};
+
   var EQUIPMENT_LIST = {
 
     hybrid_inverter: {
@@ -115,32 +121,30 @@ Draw.loadPlugin(function (ui) {
       stencil: 'hybrid_inverter_body',
       w: 160,
       h: 140,
-      defaults: {phase: '1', pvInputs: 2, batteryInputs: 1, grid: true, load: true},
+      defaults: {phase: '1', pvInputs: 2, batteryInputs: 1, hasMeasuring: true},
       fields: [
         {key: 'phase', label: 'Phase', type: 'select', options: PHASE_OPTIONS},
         {key: 'pvInputs', label: 'PV inputs', type: 'number', min: 1, max: 8},
         {key: 'batteryInputs', label: 'Battery inputs', type: 'number', min: 0, max: 4},
-        {key: 'grid', label: 'Grid connection', type: 'checkbox'},
-        {key: 'load', label: 'AC load connection', type: 'checkbox'}
+        METER_FIELD
       ],
       ports: function (settings) {
         var list = [];
+        // 'yes' on every port when the inverter has its own meter
+        var measured = settings.hasMeasuring ? 'yes' : null;
         for (var n = 1; n <= settings.pvInputs; n++) {
           list.push({portId: 'PV' + n, kind: 'DC', direction: 'in', side: 'left',
-            accepts: 'solar_pv,string_combiner,' + IN_BETWEEN_DC, max: 1});
+            accepts: 'solar_pv,string_combiner,' + IN_BETWEEN_DC, max: 1, measured: measured});
         }
         for (var b = 1; b <= settings.batteryInputs; b++) {
           list.push({portId: 'BAT' + b, kind: 'DC', direction: 'both', side: 'bottom',
-            accepts: 'battery_pack,' + IN_BETWEEN_DC, max: 1});
+            accepts: 'battery_pack,' + IN_BETWEEN_DC, max: 1, measured: measured});
         }
-        if (settings.grid) {
-          list.push({portId: 'GRID', kind: 'AC', direction: 'both', side: 'right',
-            accepts: 'grid,' + IN_BETWEEN_AC, phase: settings.phase, max: 1});
-        }
-        if (settings.load) {
-          list.push({portId: 'LOAD', kind: 'AC', direction: 'out', side: 'right',
-            accepts: 'load,' + IN_BETWEEN_AC, phase: settings.phase, max: null});
-        }
+        // Every hybrid inverter has a GRID port and a LOAD (backup) port
+        list.push({portId: 'GRID', kind: 'AC', direction: 'both', side: 'right',
+          accepts: 'grid,' + IN_BETWEEN_AC, phase: settings.phase, max: 1, measured: measured});
+        list.push({portId: 'LOAD', kind: 'AC', direction: 'out', side: 'right',
+          accepts: 'load,non_critical_load,' + IN_BETWEEN_AC, phase: settings.phase, max: null, measured: measured});
         return list;
       }
     },
@@ -150,11 +154,12 @@ Draw.loadPlugin(function (ui) {
       stencil: 'solar_pv',
       w: 110,
       h: 70,
-      defaults: {strings: 1, modulesPerString: 10, moduleWatt: 550},
+      defaults: {strings: 1, modulesPerString: 10, moduleWatt: 550, hasMeasuring: false},
       fields: [
         {key: 'strings', label: 'Strings (DC outputs)', type: 'number', min: 1, max: 8},
         {key: 'modulesPerString', label: 'Modules per string', type: 'number', min: 1, max: 40},
-        {key: 'moduleWatt', label: 'Module rating (W)', type: 'number', min: 50, max: 1000}
+        {key: 'moduleWatt', label: 'Module rating (W)', type: 'number', min: 50, max: 1000},
+        METER_FIELD
       ],
       ports: function (settings) {
         var list = [];
@@ -171,10 +176,11 @@ Draw.loadPlugin(function (ui) {
       stencil: 'battery_pack',
       w: 120,
       h: 85,
-      defaults: {nominalVoltage: 51.2, capacityKwh: 5},
+      defaults: {nominalVoltage: 51.2, capacityKwh: 5, hasMeasuring: true},
       fields: [
         {key: 'nominalVoltage', label: 'Nominal voltage (V)', type: 'number', min: 12, max: 1000, step: 0.1},
-        {key: 'capacityKwh', label: 'Capacity (kWh)', type: 'number', min: 0.1, max: 1000, step: 0.1}
+        {key: 'capacityKwh', label: 'Capacity (kWh)', type: 'number', min: 0.1, max: 1000, step: 0.1},
+        METER_FIELD
       ],
       ports: function (settings) {
         return [{portId: 'DC', kind: 'DC', direction: 'both', side: 'top',
@@ -187,10 +193,11 @@ Draw.loadPlugin(function (ui) {
       stencil: 'grid',
       w: 110,
       h: 70,
-      defaults: {phase: '1', voltage: 230},
+      defaults: {phase: '1', voltage: 230, hasMeasuring: false},
       fields: [
         {key: 'phase', label: 'Phase', type: 'select', options: PHASE_OPTIONS},
-        {key: 'voltage', label: 'Voltage (V)', type: 'number', min: 100, max: 1000}
+        {key: 'voltage', label: 'Voltage (V)', type: 'number', min: 100, max: 1000},
+        METER_FIELD
       ],
       ports: function (settings) {
         return [{portId: 'AC', kind: 'AC', direction: 'both', side: 'left',
@@ -199,14 +206,32 @@ Draw.loadPlugin(function (ui) {
     },
 
     load: {
-      title: 'AC Load',
+      title: 'Critical Load',
       stencil: 'ac_load',
       w: 110,
       h: 70,
-      defaults: {phase: '1', powerKw: 2},
+      defaults: {phase: '1', powerKw: 2, hasMeasuring: false},
       fields: [
         {key: 'phase', label: 'Phase', type: 'select', options: PHASE_OPTIONS},
-        {key: 'powerKw', label: 'Power (kW)', type: 'number', min: 0.1, max: 1000, step: 0.1}
+        {key: 'powerKw', label: 'Power (kW)', type: 'number', min: 0.1, max: 1000, step: 0.1},
+        METER_FIELD
+      ],
+      ports: function (settings) {
+        return [{portId: 'AC', kind: 'AC', direction: 'in', side: 'left',
+          accepts: 'hybrid_inverter,' + IN_BETWEEN_AC, phase: settings.phase, max: 1}];
+      }
+    },
+
+    non_critical_load: {
+      title: 'Non-Critical Load',
+      stencil: 'non_critical_load',
+      w: 130,
+      h: 70,
+      defaults: {phase: '1', powerKw: 2, hasMeasuring: false},
+      fields: [
+        {key: 'phase', label: 'Phase', type: 'select', options: PHASE_OPTIONS},
+        {key: 'powerKw', label: 'Power (kW)', type: 'number', min: 0.1, max: 1000, step: 0.1},
+        METER_FIELD
       ],
       ports: function (settings) {
         return [{portId: 'AC', kind: 'AC', direction: 'in', side: 'left',
@@ -283,12 +308,12 @@ Draw.loadPlugin(function (ui) {
       stencil: 'busbar',
       w: 240,
       h: 30,
-      fillColor: '#D6DBDF',
-      defaults: {kind: 'AC', taps: 4, ratedCurrent: 250},
+      defaults: {kind: 'AC', taps: 4, ratedCurrent: 250, hasMeasuring: false},
       fields: [
         {key: 'kind', label: 'Type', type: 'select', options: KIND_OPTIONS},
         {key: 'taps', label: 'Connection points', type: 'number', min: 2, max: 8},
-        {key: 'ratedCurrent', label: 'Rated current (A)', type: 'number', min: 1, max: 6000}
+        {key: 'ratedCurrent', label: 'Rated current (A)', type: 'number', min: 1, max: 6000},
+        METER_FIELD
       ],
       ports: function (settings) {
         var accepts = (settings.kind === 'DC') ? ANY_DC : ANY_AC;
@@ -446,7 +471,8 @@ Draw.loadPlugin(function (ui) {
       direction: port.direction,
       accepts: port.accepts,
       phase: port.phase,
-      voltage: port.voltage
+      voltage: port.voltage,
+      measured: port.measured
     });
   }
 
@@ -1094,7 +1120,8 @@ Draw.loadPlugin(function (ui) {
           data.getAttribute('direction') !== expected.direction ||
           data.getAttribute('accepts') !== expected.accepts ||
           !sameText(data.getAttribute('phase'), expected.phase) ||
-          !sameText(data.getAttribute('voltage'), expected.voltage)) {
+          !sameText(data.getAttribute('voltage'), expected.voltage) ||
+          !sameText(data.getAttribute('measured'), expected.measured)) {
         return true;
       }
     }
@@ -1593,6 +1620,7 @@ Draw.loadPlugin(function (ui) {
   //   V8  equipment not connected to anything     (warning)
   //   V9  port wired to a non-Irasus shape        (warning)
   //   V10 ports do not match the settings         (error)
+  //   V11 inverter GRID port not connected        (warning)
   //   OLD problems in old-style diagrams          (error)
   // ===================================================================
 
@@ -1819,6 +1847,13 @@ Draw.loadPlugin(function (ui) {
         // V7: inverter without power source
         addProblem('V7', 'error', body, describe(body) + ' has no power source: connect Solar PV, ' +
           'a Battery Pack or the Grid (directly or through a meter, contactor or bus bar).');
+      }
+
+      // V11: inverter GRID port not connected (off-grid)
+      if (hasWire && getEquipmentType(body) === 'hybrid_inverter' &&
+          ports['GRID'] && model.getEdgeCount(ports['GRID']) === 0) {
+        addProblem('V11', 'warning', ports['GRID'], describe(ports['GRID']) +
+          ' is not connected. The inverter will run off-grid (solar and battery only).');
       }
     }
 

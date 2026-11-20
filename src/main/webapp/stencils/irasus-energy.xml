@@ -1,101 +1,190 @@
 <shapes name="mxgraph.irasus">
   <shape name="Hybrid Inverter" w="160" h="120" aspect="variable" strokewidth="inherit">
     <connections>
-      <constraint x="0" y="0.25" perimeter="0" name="PV1"/>
-      <constraint x="0" y="0.75" perimeter="0" name="PV2"/>
-      <constraint x="0.5" y="1" perimeter="0" name="BATTERY"/>
-      <constraint x="1" y="0.25" perimeter="0" name="GRID"/>
-      <constraint x="1" y="0.75" perimeter="0" name="LOAD"/>
+      <constraint x="0" y="0.25" perimeter="0" name="PV1" />
+      <constraint x="0" y="0.75" perimeter="0" name="PV2" />
+      <constraint x="0.5" y="1" perimeter="0" name="BATTERY" />
+      <constraint x="1" y="0.25" perimeter="0" name="GRID" />
+      <constraint x="1" y="0.75" perimeter="0" name="LOAD" />
     </connections>
-    <background><roundrect x="0" y="0" w="160" h="120" arcsize="8"/></background>
+    <background>
+      <roundrect x="0" y="0" w="160" h="120" arcsize="8" />
+    </background>
     <foreground>
-      <fillstroke/><fontcolor color="#16324F"/><fontstyle style="1"/><fontsize size="12"/>
-      <text str="HYBRID INVERTER" x="80" y="20" align="center" valign="middle"/>
-      <fontstyle style="0"/><fontsize size="10"/>
-      <text str="PV1  DC" x="9" y="30" align="left" valign="middle"/>
-      <text str="PV2  DC" x="9" y="90" align="left" valign="middle"/>
-      <text str="AC  GRID" x="151" y="30" align="right" valign="middle"/>
-      <text str="AC  LOAD" x="151" y="90" align="right" valign="middle"/>
-      <text str="DC BAT" x="80" y="105" align="center" valign="middle"/>
-      <path><move x="60" y="48"/><line x="100" y="48"/><line x="100" y="75"/><line x="60" y="75"/><close/></path><stroke/>
-      <text str="DC/AC" x="80" y="61" align="center" valign="middle"/>
+      <fillstroke />
+      <fontcolor color="#16324F" />
+      <fontstyle style="1" />
+      <fontsize size="12" />
+      <text str="HYBRID INVERTER" x="80" y="20" align="center" valign="middle" />
+      <fontstyle style="0" />
+      <fontsize size="10" />
+      <text str="PV1  DC" x="9" y="30" align="left" valign="middle" />
+      <text str="PV2  DC" x="9" y="90" align="left" valign="middle" />
+      <text str="AC  GRID" x="151" y="30" align="right" valign="middle" />
+      <text str="AC  LOAD" x="151" y="90" align="right" valign="middle" />
+      <text str="DC BAT" x="80" y="105" align="center" valign="middle" />
+      <path>
+        <move x="60" y="48" />
+        <line x="100" y="48" />
+        <line x="100" y="75" />
+        <line x="60" y="75" />
+        <close />
+      </path>
+      <stroke />
+      <text str="DC/AC" x="80" y="61" align="center" valign="middle" />
     </foreground>
   </shape>
   <shape name="Battery Pack" w="120" h="85" aspect="variable" strokewidth="inherit">
-    <connections><constraint x="0.5" y="0" perimeter="0" name="DC"/></connections>
-    <background><roundrect x="0" y="5" w="120" h="80" arcsize="8"/></background>
-    <foreground><fillstroke/><rect x="52" y="0" w="16" h="5"/><fillstroke/>
-      <fontcolor color="#16324F"/><fontstyle style="1"/><fontsize size="12"/>
-      <text str="BATTERY PACK" x="60" y="22" align="center" valign="middle"/>
-      <fontstyle style="0"/><fontsize size="10"/><text str="DC" x="60" y="76" align="center" valign="middle"/>
+    <connections>
+      <constraint x="0.5" y="0" perimeter="0" name="DC" />
+    </connections>
+    <background>
+      <roundrect x="0" y="5" w="120" h="80" arcsize="8" />
+    </background>
+    <foreground>
+      <fillstroke />
+      <rect x="52" y="0" w="16" h="5" />
+      <fillstroke />
+      <fontcolor color="#16324F" />
+      <fontstyle style="1" />
+      <fontsize size="12" />
+      <text str="BATTERY PACK" x="60" y="22" align="center" valign="middle" />
+      <fontstyle style="0" />
+      <fontsize size="10" />
+      <text str="DC" x="60" y="76" align="center" valign="middle" />
     </foreground>
   </shape>
   <shape name="Solar PV" w="110" h="70" aspect="variable" strokewidth="inherit">
-    <connections><constraint x="1" y="0.5" perimeter="0" name="DC"/></connections>
-    <background><rect x="0" y="0" w="110" h="70"/></background>
-    <foreground><fillstroke/>
-      <fontcolor color="#16324F"/><fontstyle style="1"/><fontsize size="11"/><text str="SOLAR PV (DC)" x="55" y="35" align="center" valign="middle"/>
+    <connections>
+      <constraint x="1" y="0.5" perimeter="0" name="DC" />
+    </connections>
+    <background>
+      <rect x="0" y="0" w="110" h="70" />
+    </background>
+    <foreground>
+      <fillstroke />
+      <fontcolor color="#16324F" />
+      <fontstyle style="1" />
+      <fontsize size="11" />
+      <text str="SOLAR PV (DC)" x="55" y="35" align="center" valign="middle" />
     </foreground>
   </shape>
   <shape name="Grid" w="110" h="70" aspect="variable" strokewidth="inherit">
-    <connections><constraint x="0" y="0.5" perimeter="0" name="AC"/></connections>
-    <background><roundrect x="0" y="0" w="110" h="70" arcsize="8"/></background>
-    <foreground><fillstroke/><fontcolor color="#16324F"/><fontstyle style="1"/><fontsize size="13"/>
-      <text str="GRID" x="55" y="28" align="center" valign="middle"/><fontsize size="10"/>
-      <text str="AC" x="55" y="48" align="center" valign="middle"/>
+    <connections>
+      <constraint x="0" y="0.5" perimeter="0" name="AC" />
+    </connections>
+    <background>
+      <roundrect x="0" y="0" w="110" h="70" arcsize="8" />
+    </background>
+    <foreground>
+      <fillstroke />
+      <fontcolor color="#16324F" />
+      <fontstyle style="1" />
+      <fontsize size="13" />
+      <text str="GRID" x="55" y="28" align="center" valign="middle" />
+      <fontsize size="10" />
+      <text str="AC" x="55" y="48" align="center" valign="middle" />
     </foreground>
   </shape>
   <shape name="Hybrid Inverter Body" w="160" h="140" aspect="variable" strokewidth="inherit">
-    <connections/>
-    <background><roundrect x="0" y="0" w="160" h="140" arcsize="8"/></background>
+    <connections />
+    <background>
+      <roundrect x="0" y="0" w="160" h="140" arcsize="8" />
+    </background>
     <foreground>
-      <fillstroke/><fontcolor color="#16324F"/><fontstyle style="1"/><fontsize size="12"/>
-      <text str="HYBRID INVERTER" x="80" y="20" align="center" valign="middle"/>
-      <fontstyle style="0"/><fontsize size="10"/>
+      <fillstroke />
+      <fontcolor color="#16324F" />
+      <fontstyle style="1" />
+      <fontsize size="12" />
+      <text str="HYBRID INVERTER" x="80" y="20" align="center" valign="middle" />
+      <fontstyle style="0" />
+      <fontsize size="10" />
     </foreground>
   </shape>
   <shape name="AC Load" w="110" h="70" aspect="variable" strokewidth="inherit">
-    <connections><constraint x="0" y="0.5" perimeter="0" name="AC"/></connections>
-    <background><roundrect x="0" y="0" w="110" h="70" arcsize="8"/></background>
-    <foreground><fillstroke/><fontcolor color="#16324F"/><fontstyle style="1"/><fontsize size="13"/>
-      <text str="AC LOAD" x="55" y="28" align="center" valign="middle"/><fontsize size="10"/>
-      <text str="AC" x="55" y="48" align="center" valign="middle"/>
+    <connections>
+      <constraint x="0" y="0.5" perimeter="0" name="AC" />
+    </connections>
+    <background>
+      <roundrect x="0" y="0" w="110" h="70" arcsize="8" />
+    </background>
+    <foreground>
+      <fillstroke />
+      <fontcolor color="#16324F" />
+      <fontstyle style="1" />
+      <fontsize size="11" />
+      <text str="CRITICAL LOAD" x="55" y="28" align="center" valign="middle" />
+      <fontsize size="10" />
+      <text str="AC" x="55" y="48" align="center" valign="middle" />
     </foreground>
   </shape>
   <shape name="AC Meter" w="100" h="70" aspect="variable" strokewidth="inherit">
-    <connections/>
-    <background><roundrect x="0" y="0" w="100" h="70" arcsize="8"/></background>
+    <connections />
+    <background>
+      <roundrect x="0" y="0" w="100" h="70" arcsize="8" />
+    </background>
     <foreground>
-      <fillstroke/><fontcolor color="#16324F"/><fontstyle style="1"/><fontsize size="11"/>
-      <text str="AC METER" x="50" y="16" align="center" valign="middle"/>
+      <fillstroke />
+      <fontcolor color="#16324F" />
+      <fontstyle style="1" />
+      <fontsize size="11" />
+      <text str="AC METER" x="50" y="16" align="center" valign="middle" />
     </foreground>
   </shape>
   <shape name="DC Meter" w="100" h="70" aspect="variable" strokewidth="inherit">
-    <connections/>
-    <background><roundrect x="0" y="0" w="100" h="70" arcsize="8"/></background>
+    <connections />
+    <background>
+      <roundrect x="0" y="0" w="100" h="70" arcsize="8" />
+    </background>
     <foreground>
-      <fillstroke/><fontcolor color="#16324F"/><fontstyle style="1"/><fontsize size="11"/>
-      <text str="DC METER" x="50" y="16" align="center" valign="middle"/>
-    
+      <fillstroke />
+      <fontcolor color="#16324F" />
+      <fontstyle style="1" />
+      <fontsize size="11" />
+      <text str="DC METER" x="50" y="16" align="center" valign="middle" />
+
     </foreground>
   </shape>
   <shape name="Contactor" w="100" h="70" aspect="variable" strokewidth="inherit">
-    <connections/>
-    <background><roundrect x="0" y="0" w="100" h="70" arcsize="8"/></background>
+    <connections />
+    <background>
+      <roundrect x="0" y="0" w="100" h="70" arcsize="8" />
+    </background>
     <foreground>
-      <fillstroke/><fontcolor color="#16324F"/><fontstyle style="1"/><fontsize size="11"/>
-      <text str="CONTACTOR" x="50" y="16" align="center" valign="middle"/>
-      <path><move x="15" y="45"/><line x="38" y="45"/><line x="60" y="32"/><move x="62" y="45"/><line x="85" y="45"/></path><stroke/>
-      <ellipse x="35" y="42" w="6" h="6"/><stroke/>
-      <ellipse x="59" y="42" w="6" h="6"/><stroke/>
+      <fillstroke />
+      <fontcolor color="#16324F" />
+      <fontstyle style="1" />
+      <fontsize size="11" />
+      <text str="CONTACTOR" x="50" y="16" align="center" valign="middle" />
+
     </foreground>
   </shape>
   <shape name="Bus Bar" w="240" h="30" aspect="variable" strokewidth="inherit">
-    <connections/>
-    <background><rect x="0" y="0" w="240" h="30"/></background>
+    <connections />
+    <background>
+      <rect x="0" y="0" w="240" h="30" />
+    </background>
     <foreground>
-      <fillstroke/><fontcolor color="#16324F"/><fontstyle style="1"/><fontsize size="10"/>
-      <text str="BUS BAR" x="120" y="22" align="center" valign="middle"/>
+      <fillstroke />
+      <fontcolor color="#16324F" />
+      <fontstyle style="1" />
+      <fontsize size="10" />
+      <text str="BUS BAR" x="120" y="22" align="center" valign="middle" />
+    </foreground>
+  </shape>
+  <shape name="Non-Critical Load" w="130" h="70" aspect="variable" strokewidth="inherit">
+    <connections />
+    <background>
+      <roundrect x="0" y="0" w="130" h="70" arcsize="8" />
+    </background>
+    <foreground>
+      <fillstroke />
+      <fontcolor color="#16324F" />
+      <fontstyle style="1" />
+      <fontsize size="11" />
+      <text str="NON-CRITICAL LOAD" x="65" y="28" align="center" valign="middle" />
+      <fontsize size="10" />
+      <text str="AC" x="65" y="48" align="center" valign="middle" />
     </foreground>
   </shape>
 </shapes>
